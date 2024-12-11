@@ -34,11 +34,12 @@
 
 
 import sys
+import argparse
 from typing import Union
 try:
     from pymisp import MISPEvent, PyMISP, MISPObject, MISPGalaxy, MISPAttribute
 except ModuleNotFoundError:
-    print("[-] PyMISP module is not install.")
+    print("[-] PyMISP module is not installed.")
 
 MISP_URL: str = "MISP_INSTANCE_URL"
 MISP_API_KEY: str = "YOUR_API_KEY"
@@ -117,38 +118,25 @@ class MispYaraDumper:
         return threat_actor_tag_name
 
 
-def print_usage() -> None:
-    print("Usage:\npython {0} EVENT_ID\npython {0} \"GROUP NAME\"\npython {0} -a (extracts all yara rules)".format(sys.argv[0]))
-
-
 def main() -> None:
-    if len(sys.argv) < 2:
-        print_usage()
-        return
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", "--event", help="event ID from which to extract yara rules", type=int)
+    parser.add_argument("-g", "--group", help="group name from which to extract yara rules", type=str)
+    parser.add_argument("-a", "--all", help="extract all yara rules", action="store_true")
+
+    args = parser.parse_args()
 
     yara_dumper = MispYaraDumper()
-    event_id = None
-    group_name = None
-    try:
-        event_id = int(sys.argv[1])
-        if event_id == 0:
+    if args.event:
+        if args.event == 0:
             sys.exit("[-] Event ID 0 does not exist.")
-        yara_dumper.dump_yaras_from_event_id(event_id)
-    except ValueError:
-        arg = sys.argv[1]
-        if arg == "-h" or arg == "--help":
-            print_usage()
-            return
-        if arg == "-a" or arg == "--all":
-            print("[+] Extracting all yara rules from every TA and AS, this will take a few minutes.")
-            yara_dumper.dump_all_yaras_from_TA_AS()
-            return
-        group_name = arg
-        yara_dumper.dump_yaras_from_threat_actor(group_name)
-    except Exception as e:
-        raise e
+        yara_dumper.dump_yaras_from_event_id(args.event)
+    if args.group:
+        yara_dumper.dump_yaras_from_threat_actor(args.group)
+    if args.all:
+        print("[+] Extracting all yara rules from every TA and AS, this will take a few minutes.")
+        yara_dumper.dump_all_yaras_from_TA_AS()
     return
-
 
 if __name__ == "__main__":
     main()
